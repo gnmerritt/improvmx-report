@@ -10,8 +10,8 @@ const API_BASE: &str = "https://api.improvmx.com/v3";
 
 #[derive(Debug, Deserialize)]
 pub struct Domain {
-    active: bool,
-    domain: String,
+    pub active: bool,
+    pub domain: String,
     display: String,
     #[serde(with = "ts_milliseconds_option")]
     added: Option<DateTime<Utc>>,
@@ -38,6 +38,7 @@ pub struct MessageEvent {
     #[serde(with = "ts_milliseconds_option")]
     created: Option<DateTime<Utc>>,
     status: String,
+    message: String,
     local: String,
     server: String,
 }
@@ -57,6 +58,16 @@ pub struct MessageLogs {
     recipient: Contact,
     sender: Contact,
     subject: String,
+}
+
+#[derive(Debug)]
+pub struct UndeliveredMessage {
+    pub subject: String,
+    pub from: String,
+    pub to: String,
+    pub forwarded_to: String,
+    pub last_status: String,
+    pub last_message: String,
 }
 
 pub struct ImprovMx {
@@ -88,17 +99,25 @@ impl ImprovMx {
         Ok(parsed.domains)
     }
 
-    pub fn undelivered_messages(&self, domain: &Domain) -> Result<Vec<MessageLogs>, Error> {
+    pub fn undelivered_messages(&self, domain: &Domain) -> Result<Vec<UndeliveredMessage>, Error> {
         let url = format!("{}/domains/{}/logs", API_BASE, domain.domain);
         let res = self.get(&url)?;
         let parsed: LogResponse = res.json()?;
-        let undelivered: Vec<MessageLogs> = parsed
+        let undelivered: Vec<_> = parsed
             .logs
             .into_iter()
-            .filter(|log| match log.events.last() {
-                None => true,
-                Some(event) => event.status != "DELIVERED",
+            .map(|log| match log.events.last() {
+                Some(event) if event.status != "DELIVERED" => Some(UndeliveredMessage {
+                    subject: log.subject,
+                    from: log.sender.email,
+                    to: log.recipient.email,
+                    forwarded_to: log.forward.email,
+                    last_status: event.status.clone(),
+                    last_message: event.message.clone(),
+                }),
+                _ => None,
             })
+            .flatten()
             .collect();
         Ok(undelivered)
     }
