@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use chrono::prelude::*;
 use chrono::serde::ts_milliseconds_option;
 use reqwest;
@@ -70,24 +72,25 @@ impl ImprovMx {
         }
     }
 
-    pub fn domains(&self) -> Result<Vec<Domain>, Error> {
-        let url = format!("{}/domains/?is_active", API_BASE);
+    fn get(&self, url: &str) -> Result<reqwest::blocking::Response, Error> {
         let request_builder = self.client.get(url);
         let res = request_builder
             .basic_auth("api", Some(self.api_key.clone()))
             .send()?
             .error_for_status()?;
+        Ok(res)
+    }
+
+    pub fn domains(&self) -> Result<Vec<Domain>, Error> {
+        let url = format!("{}/domains/?is_active", API_BASE);
+        let res = self.get(&url)?;
         let parsed: DomainResponse = res.json()?;
         Ok(parsed.domains)
     }
 
     pub fn undelivered_messages(&self, domain: &Domain) -> Result<Vec<MessageLogs>, Error> {
         let url = format!("{}/domains/{}/logs", API_BASE, domain.domain);
-        let request_builder = self.client.get(url);
-        let res = request_builder
-            .basic_auth("api", Some(self.api_key.clone()))
-            .send()?
-            .error_for_status()?;
+        let res = self.get(&url)?;
         let parsed: LogResponse = res.json()?;
         Ok(parsed.logs)
     }
