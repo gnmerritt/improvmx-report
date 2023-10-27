@@ -7,9 +7,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let client = improvmx::ImprovMx::new(&key);
     let domains = client.domains()?;
     for d in domains {
-        print!("{:?}", &d);
-        let logs = client.undelivered_messages(&d)?;
-        print!("{:?}", logs);
+        println!("{:?}", &d);
+        let undelivered = client.undelivered_messages(&d)?;
+        println!("{:?}", undelivered);
     }
     Ok(())
 }

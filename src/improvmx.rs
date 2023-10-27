@@ -92,6 +92,14 @@ impl ImprovMx {
         let url = format!("{}/domains/{}/logs", API_BASE, domain.domain);
         let res = self.get(&url)?;
         let parsed: LogResponse = res.json()?;
-        Ok(parsed.logs)
+        let undelivered: Vec<MessageLogs> = parsed
+            .logs
+            .into_iter()
+            .filter(|log| match log.events.last() {
+                None => true,
+                Some(event) => event.status != "DELIVERED",
+            })
+            .collect();
+        Ok(undelivered)
     }
 }
