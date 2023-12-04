@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         msg.to, msg.forwarded_to, msg.from
                     ));
                     report_body.push_str(&format!(
-                        "    subj: {}\n    {}: {}",
+                        "    subj: {}\n    {}: {}\n\n",
                         msg.subject, msg.last_status, msg.last_message
                     ));
                 }
