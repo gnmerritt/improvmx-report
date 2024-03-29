@@ -10,7 +10,7 @@ struct DomainReport {
     error: Option<String>,
 }
 
-fn email_report(report: String) -> Result<(), Box<dyn Error>> {
+fn email_report(report: String, undelivered_count: usize) -> Result<(), Box<dyn Error>> {
     let report_dest = std::env::var("REPORT_DEST")?;
     let mailgun_key = std::env::var("MG_KEY")?;
     let mailgun_domain = std::env::var("MG_DOMAIN")?;
@@ -21,7 +21,7 @@ fn email_report(report: String) -> Result<(), Box<dyn Error>> {
     let msg = Message {
         to: vec![EmailAddress::address(report_dest)],
         body: MessageBody::Text(report),
-        subject: String::from("Undelivered email report"),
+        subject: format!("Undelivered email report - {}", undelivered_count),
         ..Default::default()
     };
     let res = mailgun_v3::email::send_email(&creds, &sender, msg);
@@ -48,6 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
         });
     let mut report_body = "-- Email forwarding report --\n".to_owned();
+    let mut count= 0;
     for r in reports {
         match r.error {
             Some(error_message) => {
@@ -62,6 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     r.domain,
                     r.undelivered.len()
                 ));
+                count += r.undelivered.len();
                 for msg in r.undelivered {
                     report_body.push_str(&format!(
                         "to: {} ({}) from: {},\n",
@@ -76,6 +78,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     print!("{}", report_body);
-    email_report(report_body)?;
+    email_report(report_body, count)?;
     Ok(())
 }
