@@ -54,7 +54,7 @@ pub struct MessageLogs {
     #[serde(with = "ts_milliseconds_option")]
     created: Option<DateTime<Utc>>,
     events: Vec<MessageEvent>,
-    forward: Contact,
+    forward: Option<Contact>, // not every email will be to an address we forward from
     recipient: Contact,
     sender: Contact,
     subject: String,
@@ -106,18 +106,19 @@ impl ImprovMx {
         let undelivered: Vec<_> = parsed
             .logs
             .into_iter()
-            .map(|log| match log.events.last() {
+            // skip errors to email addresses that don't have forwarding set up (e.g. no catch-all)
+            .filter(|log| log.forward.is_some())
+            .filter_map(|log| match log.events.last() {
                 Some(event) if event.status != "DELIVERED" => Some(UndeliveredMessage {
                     subject: log.subject,
                     from: log.sender.email,
                     to: log.recipient.email,
-                    forwarded_to: log.forward.email,
+                    forwarded_to: log.forward.unwrap().email,
                     last_status: event.status.clone(),
                     last_message: event.message.clone(),
                 }),
                 _ => None,
             })
-            .flatten()
             .collect();
         Ok(undelivered)
     }

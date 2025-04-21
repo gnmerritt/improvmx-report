@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
         });
     let mut report_body = "-- Email forwarding report --\n".to_owned();
-    let mut count= 0;
+    let mut count = 0;
     for r in reports {
         match r.error {
             Some(error_message) => {
