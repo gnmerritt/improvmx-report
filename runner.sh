@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+cd "$(dirname "$0")"
 source .env
 
 if [ -z "$PS1" ]; then
@@ -7,7 +8,6 @@ if [ -z "$PS1" ]; then
   exec 2>&1
 fi
 
-cd "$(dirname "$0")"
 cargo build --release
 
 echo "Starting email report at $(date)"
